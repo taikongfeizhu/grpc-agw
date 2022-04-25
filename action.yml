@@ -32,7 +32,3 @@ outputs:
     description: 'Build result artifacts'
   metadata:
     description: 'Build result metadata'
-
-runs:
-  using: 'node12'
-  main: 'dist/index.js'
