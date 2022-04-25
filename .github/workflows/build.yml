@@ -1,197 +1,46 @@
-name: ci
+name: build
 
 on:
-  schedule:
-    - cron: '0 10 * * *' # everyday at 10am
   push:
     branches:
-      - 'master'
-      - 'releases/v*'
+      - 'main'
     tags:
       - 'v*'
   pull_request:
-    branches:
-      - 'master'
-      - 'releases/v*'
 
 jobs:
-  ci:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macOS-latest
-          - windows-latest
-        version:
-          - latest
-          - '~> 0.182'
-        distribution:
-          - goreleaser
-          - goreleaser-pro
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      -
-        name: Check
-        uses: ./
-        with:
-          version: ${{ matrix.version }}
-          args: check --debug
-          workdir: .
-      -
-        name: GoReleaser
-        if: ${{ !(github.event_name == 'pull_request' && matrix.distribution == 'goreleaser-pro') }}
-        uses: ./
-        env:
-          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-        with:
-          distribution: ${{ matrix.distribution }}
-          version: ${{ matrix.version }}
-          args: release --skip-publish --rm-dist
-          workdir: .
-
-  install-only:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - latest
-          - '~> 0.166'
-        distribution:
-          - goreleaser
-          - goreleaser-pro
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
       -
         name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
           go-version: 1.18
       -
-        name: GoReleaser
-        if: ${{ !(github.event_name == 'pull_request' && matrix.distribution == 'goreleaser-pro') }}
-        uses: ./
+        name: Cache Go modules
+        uses: actions/cache@v1
         with:
-          distribution: ${{ matrix.distribution }}
-          version: ${{ matrix.version }}
-          install-only: true
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       -
-        name: Check
-        if: ${{ !(github.event_name == 'pull_request' && matrix.distribution == 'goreleaser-pro') }}
+        name: Tests
         run: |
-          goreleaser check --debug
-  signing:
-    runs-on: ${{ matrix.os }}
-    if: github.event_name != 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macOS-latest
-          - windows-latest
-    steps:
+          go mod tidy
+          go test -v ./...
       -
-        name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      -
-        name: Import GPG key
-        id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v4
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY_TEST }}
-          passphrase: ${{ secrets.PASSPHRASE_TEST }}
-      -
-        name: Check
-        uses: ./
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
-          args: -f .goreleaser-signing.yml check --debug
-          workdir: ./test
+          args: release --rm-dist
         env:
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-      -
-        name: GoReleaser
-        uses: ./
-        with:
-          version: latest
-          args: -f .goreleaser-signing.yml release --skip-publish --rm-dist
-          workdir: .
-        env:
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-
-  upload-artifact:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      -
-        name: Check
-        uses: ./
-        with:
-          args: check --debug
-          workdir: ./test
-      -
-        name: GoReleaser
-        uses: ./
-        with:
-          args: release --skip-publish --rm-dist
-          workdir: .
-      -
-        name: Upload assets
-        uses: actions/upload-artifact@v3
-        with:
-          name: grpc-agw
-          path: ./dist/*
-
-  current-tag:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      -
-        name: GoReleaser
-        uses: ./
-        with:
-          args: release --skip-publish --rm-dist
-          workdir: .
-        env:
-          GORELEASER_CURRENT_TAG: v1.8.3
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
