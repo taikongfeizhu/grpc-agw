@@ -2,16 +2,18 @@ package main
 
 import (
 	"context"
+	run "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net"
 	"net/http"
-
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"runtime"
 
 	pb "github.com/iamrajiv/helloworld-grpc-gateway/proto/helloworld"
 )
+
+var version = "dev"
 
 type server struct {
 	pb.UnimplementedGreeterServer
@@ -50,7 +52,7 @@ func main() {
 		log.Fatalln("Failed to dial server:", err)
 	}
 
-	gwmux := runtime.NewServeMux()
+	gwmux := run.NewServeMux()
 	// Register Greeter
 	err = pb.RegisterGreeterHandler(context.Background(), gwmux, conn)
 	if err != nil {
@@ -62,6 +64,7 @@ func main() {
 		Handler: gwmux,
 	}
 
+	log.Println("hello world, gitlab! (", version, runtime.GOOS, runtime.GOARCH, ")")
 	log.Println("Serving gRPC-Gateway on http://0.0.0.0:8090")
 	log.Fatalln(gwServer.ListenAndServe())
 }

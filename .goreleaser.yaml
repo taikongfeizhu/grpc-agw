@@ -2,10 +2,7 @@
 # Make sure to check the documentation at https://goreleaser.com
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
-    - go generate ./...
 builds:
   - env:
       - CGO_ENABLED=0
@@ -15,7 +12,6 @@ builds:
       - darwin
     goarch:
       - amd64
-      - arm
       - arm64
 archives:
   - replacements:
@@ -33,3 +29,8 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+nfpms:
+  - maintainer: huangjian <huangjian1820@gmail.com>
+    description: grpc api gateway.
+    homepage: https://github.com/taikongfeizhu/grpc-agw
+    license: MIT
