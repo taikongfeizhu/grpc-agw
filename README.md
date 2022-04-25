@@ -28,7 +28,7 @@ It is a Basic Arithmetic gRPC server that uses gRPC-Gateway and reads protobuf s
 ├── Makefile
 ├── README.md
 ├── assets
-│   └── helloworld-grpc-gateway.svg
+│   └── grpc-gateway-release.svg
 ├── buf.gen.yaml
 ├── buf.yaml
 ├── go.mod

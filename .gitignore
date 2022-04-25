@@ -36,3 +36,4 @@ _testmain.go
 *.local.yml
 .idea
 dumped_hertz_remote_config.json
+dist/

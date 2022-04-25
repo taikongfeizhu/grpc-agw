@@ -15,7 +15,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     version: "1.0";
   };
   external_docs: {
-    url: "https://github.com/iamrajiv/helloworld-grpc-gateway";
+    url: "https://github.com/iamrajiv/grpc-gateway-release";
     description: "gRPC-gateway boilerplate repository";
   }
   schemes: HTTP;
